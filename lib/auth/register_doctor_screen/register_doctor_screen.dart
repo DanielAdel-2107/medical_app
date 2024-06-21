@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:medical_app/auth/login_screen/login_screen.dart';
+import 'package:medical_app/chat/user_chat_list.dart';
 
 class RegisterDoctorPage extends StatefulWidget {
   @override
@@ -19,19 +23,18 @@ class _RegisterDoctorPageState extends State<RegisterDoctorPage> {
   String availableTime = '';
   String email = '';
   String password = '';
-
+  UserCredential? userCredential;
   void registerDoctor() async {
     if (_formKey.currentState!.validate()) {
       try {
-        UserCredential userCredential =
-            await _auth.createUserWithEmailAndPassword(
+        userCredential = await _auth.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
 
         await _firestore
             .collection('doctors')
-            .doc(userCredential.user!.uid)
+            .doc(userCredential!.user!.uid)
             .set({
           'name': name,
           'number': number,
@@ -39,10 +42,15 @@ class _RegisterDoctorPageState extends State<RegisterDoctorPage> {
           'location': location,
           'availableTime': availableTime,
           'email': email,
-          'uid': userCredential.user!.uid,
+          'uid': userCredential!.user!.uid,
+          'role': 'doctor',
         });
 
-        // Show a success message or navigate to another screen
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoginScreen(),
+            )); // Sh
       } on FirebaseAuthException catch (e) {
         // Handle error
       }
@@ -105,7 +113,9 @@ class _RegisterDoctorPageState extends State<RegisterDoctorPage> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: registerDoctor,
+                onPressed: () async {
+                  registerDoctor();
+                },
                 child: Text('Register'),
               ),
             ],

@@ -1,26 +1,9 @@
+import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Firebase Registration',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: RegisterPatientPage(),
-    );
-  }
-}
+import 'package:medical_app/auth/login_screen/login_screen.dart';
 
 class RegisterPatientPage extends StatefulWidget {
   @override
@@ -67,12 +50,14 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
     super.dispose();
   }
 
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  UserCredential? userCredential;
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       try {
         // 1. Create user with email and password
-        UserCredential userCredential =
-            await _auth.createUserWithEmailAndPassword(
+        userCredential = await _auth.createUserWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
@@ -80,16 +65,37 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
         // 2. Store additional user details in Firestore
         await _firestore
             .collection('patients')
-            .doc(userCredential.user!.uid)
+            .doc(userCredential!.user!.uid)
             .set({
           'name': _nameController.text,
           'email': _emailController.text,
           'phone': _phoneController.text,
+          'uid': userCredential!.user!.uid,
+          'role': 'patient',
         });
-
+        await _firebaseMessaging.subscribeToTopic('message');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration Successful')),
         );
+
+        await _firestore
+            .collection('AddUserChat')
+            .doc(userCredential!.user!.uid)
+            .set({
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'uid': userCredential!.user!.uid
+        });
+
+        Timer(Duration(seconds: 4), () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoginScreen(),
+            ),
+          );
+        });
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration Failed: ${e.message}')),
@@ -112,9 +118,21 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
             key: _formKey,
             child: ListView(
               children: [
+                Center(
+                  child: CircleAvatar(
+                    radius: 100,
+                    backgroundImage: AssetImage('assets/images/patient.jfif'),
+                  ),
+                ),
+                SizedBox(height: 20),
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your name';
@@ -122,9 +140,15 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
                     return null;
                   },
                 ),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _emailController,
-                  decoration: InputDecoration(labelText: 'Email'),
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
@@ -135,9 +159,15 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
                     return null;
                   },
                 ),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: InputDecoration(labelText: 'Password'),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -148,9 +178,15 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
                     return null;
                   },
                 ),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _confirmPasswordController,
-                  decoration: InputDecoration(labelText: 'Confirm Password'),
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   obscureText: true,
                   validator: (value) {
                     if (value != _passwordController.text) {
@@ -159,9 +195,15 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
                     return null;
                   },
                 ),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _phoneController,
-                  decoration: InputDecoration(labelText: 'Phone'),
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
@@ -171,10 +213,31 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
                     return null;
                   },
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 30),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white),
                   onPressed: _register,
-                  child: Text('Register'),
+                  child: Text(
+                    'Register',
+                    style: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                SizedBox(height: 20),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LoginScreen(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Already have an account? Login',
+                    style: TextStyle(color: Colors.blue, fontSize: 18),
+                  ),
                 ),
               ],
             ),

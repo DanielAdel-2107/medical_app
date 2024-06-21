@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:medical_app/auth/login_screen/login_screen.dart';
 import 'package:medical_app/join_app_screen/join_app_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
-        alignment: Alignment.bottomCenter,
         children: [
           PageView(
             onPageChanged: (int page) {
@@ -27,24 +27,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               });
             },
             controller: _pageController,
-            children: [
+            children: const [
               OnboardingPage(
                 backgroundImage: '',
-                title: 'Constants.titleOne',
-                description: 'Constants.descriptionOne',
-                centerImage: 'assets/images/images.jfif',
+                title: 'Search for Doctor',
+                description:
+                    'you can search for doctor in all field with our Application',
+                centerImage: 'assets/images/search.jfif',
               ),
               OnboardingPage(
                 backgroundImage: '',
-                title: 'Constants.titleTwo',
-                description: 'Constants.descriptionTwo',
-                centerImage: 'assets/images/images.jfif',
+                title: 'Contact with Doctor',
+                description: 'you can contact with doctor with chat',
+                centerImage: 'assets/images/Chat.png',
               ),
-              OnboardingPage(
+              const OnboardingPage(
                 backgroundImage: '',
-                title: 'Constants.titleThree',
-                description: 'Constants.descriptionThree',
-                centerImage: 'assets/images/images.jfif',
+                title: 'recieve report from doctor',
+                description:
+                    'you can recieve report and descreption from doctor',
+                centerImage: 'assets/images/report.jfif',
               ),
             ],
           ),
@@ -60,7 +62,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             right: 30,
             child: Container(
               padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.blue,
               ),
@@ -78,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     } else {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (_) => JoinAppScreen()),
+                        MaterialPageRoute(builder: (_) => LoginScreen()),
                       );
                     }
                   });
@@ -101,9 +103,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   MaterialPageRoute(builder: (_) => JoinAppScreen()),
                 );
               },
-              child: Text(
+              child: const Text(
                 'Skip',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16.0,
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
@@ -171,7 +173,6 @@ class OnboardingPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.only(left: 25, right: 25, top: 110),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
               centerImage,

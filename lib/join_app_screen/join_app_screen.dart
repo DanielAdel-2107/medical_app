@@ -10,38 +10,17 @@ class JoinAppScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Stack(
         children: <Widget>[
-          Container(
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/MainBackGround.png'),
-                fit: BoxFit.fill,
-              ),
-            ),
-          ),
           Positioned(
-            left: 30,
-            top: 20,
+            left: MediaQuery.sizeOf(context).width / 2 - 100,
+            right: MediaQuery.sizeOf(context).width / 2 - 100,
+            top: MediaQuery.sizeOf(context).height * 0.35,
             child: Container(
-              width: 60,
-              height: 50,
+              width: 100,
+              height: 150,
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/LOGO.png'),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 200,
-            right: 30,
-            child: Container(
-              width: 350,
-              height: 300,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/DOP.png'),
-                  fit: BoxFit.cover,
+                  image: AssetImage('assets/images/join.jfif'),
+                  fit: BoxFit.fill,
                 ),
               ),
             ),
@@ -94,44 +73,6 @@ class JoinAppScreen extends StatelessWidget {
                           },
                           child: Text(
                             "Patient",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        "or",
-                        style: const TextStyle(
-                          color: Color(0xFF9F73AB),
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Container(
-                        height: 50,
-                        width: 150,
-                        margin: const EdgeInsets.only(left: 10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color.fromRGBO(63, 59, 108, 1),
-                              Color.fromRGBO(63, 59, 108, 1),
-                            ],
-                          ),
-                        ),
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => RegisterDoctorPage()),
-                            );
-                          },
-                          child: Text(
-                            "Doctor",
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
