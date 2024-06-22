@@ -84,6 +84,8 @@ class PatientDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String imageUrl = patientData['imageUrl'] ?? 'assets/images/person.png';
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -93,7 +95,9 @@ class PatientDetails extends StatelessWidget {
             child: Swing(
               child: CircleAvatar(
                 radius: 80,
-                backgroundImage: AssetImage('assets/images/person.png'),
+                backgroundImage: imageUrl.startsWith('http')
+                    ? NetworkImage(imageUrl)
+                    : AssetImage(imageUrl),
               ),
             ),
           ),
@@ -101,14 +105,14 @@ class PatientDetails extends StatelessWidget {
           _buildDetailItem('Name', patientData['name'] ?? 'Unknown'),
           const SizedBox(height: 10),
           _buildDetailItem(
-              'Age',
-              patientData['age'] != null
-                  ? patientData['age'].toString()
+              'phone',
+              patientData['phone'] != null
+                  ? patientData['phone'].toString()
                   : 'Unknown'),
           const SizedBox(height: 10),
-          _buildDetailItem('Gender', patientData['gender'] ?? 'Unknown'),
+          _buildDetailItem('Email', patientData['email'] ?? 'Unknown'),
           const SizedBox(height: 10),
-          _buildDetailItem('Address', patientData['address'] ?? 'Unknown'),
+          _buildDetailItem('status', patientData['role'] ?? 'Unknown'),
           // You can add more fields here
         ],
       ),
@@ -195,13 +199,59 @@ class _PatientReportsState extends State<PatientReports> {
     setState(() {
       _isUploading = true;
     });
-
+    var name = '';
+    FirebaseFirestore.instance
+        .collection('doctors')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get()
+        .then((DocumentSnapshot documentSnapshot) {
+      if (documentSnapshot.exists) {
+        Map<String, dynamic>? data =
+            documentSnapshot.data() as Map<String, dynamic>?;
+        if (data != null && data.containsKey('name')) {
+          String? name = data["name"];
+          print("Name: $name");
+          setState(() {});
+          // Use the name variable as needed
+        } else {
+          print("Name field does not exist in the document.");
+        }
+      } else {
+        print("Document does not exist.");
+      }
+    }).catchError((error) {
+      // Handle any errors here
+      print("Error getting document: $error");
+    });
     try {
+      // Fetch doctor's name from Firestore
+      String doctorName = '';
+      await FirebaseFirestore.instance
+          .collection('doctors')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .get()
+          .then((DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot.exists) {
+          Map<String, dynamic>? data =
+              documentSnapshot.data() as Map<String, dynamic>?;
+          if (data != null && data.containsKey('name')) {
+            doctorName = data['name'];
+          } else {
+            print("Name field does not exist in the document.");
+          }
+        } else {
+          print("Document does not exist.");
+        }
+      });
+
+      // Upload image to Firebase Storage
       final storageRef = FirebaseStorage.instance.ref().child(
           'reports/${widget.patientId}/${DateTime.now().millisecondsSinceEpoch}');
       final uploadTask = storageRef.putFile(_image!);
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Add report details to Firestore
       await FirebaseFirestore.instance
           .collection('patients')
           .doc(widget.patientId)
@@ -209,7 +259,7 @@ class _PatientReportsState extends State<PatientReports> {
           .add({
         'description': _descriptionController.text,
         'image_url': downloadUrl,
-        'Doctor name': FirebaseAuth.instance.currentUser?.displayName,
+        'Doctor name': doctorName, // Use doctor's name here
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -236,53 +286,55 @@ class _PatientReportsState extends State<PatientReports> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          TextField(
-            controller: _descriptionController,
-            decoration: InputDecoration(
-              labelText: 'Description',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
               ),
+              maxLines: 3,
             ),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 16),
-          _image != null
-              ? Image.file(
-                  _image!,
-                  height: 150,
-                )
-              : Container(
-                  height: 150,
-                  color: Colors.grey[200],
-                  child: const Center(child: Text('No image selected')),
+            const SizedBox(height: 16),
+            _image != null
+                ? Image.file(
+                    _image!,
+                    height: 150,
+                  )
+                : Container(
+                    height: 150,
+                    color: Colors.grey[200],
+                    child: const Center(child: Text('No image selected')),
+                  ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _pickImage(ImageSource.camera),
+                  icon: const Icon(Icons.camera),
+                  label: const Text('Camera'),
                 ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _pickImage(ImageSource.camera),
-                icon: const Icon(Icons.camera),
-                label: const Text('Camera'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _pickImage(ImageSource.gallery),
-                icon: const Icon(Icons.photo),
-                label: const Text('Gallery'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _isUploading
-              ? const CircularProgressIndicator()
-              : ElevatedButton(
-                  onPressed: _uploadReport,
-                  child: const Text('Upload Report'),
+                ElevatedButton.icon(
+                  onPressed: () => _pickImage(ImageSource.gallery),
+                  icon: const Icon(Icons.photo),
+                  label: const Text('Gallery'),
                 ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            _isUploading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _uploadReport,
+                    child: const Text('Upload Report'),
+                  ),
+          ],
+        ),
       ),
     );
   }

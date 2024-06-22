@@ -44,6 +44,7 @@ class _SearchPageState extends State<SearchPage> {
       }
       var doctorData = doctorDoc.data() as Map<String, dynamic>;
       String doctorName = doctorData['name'] ?? 'Unknown';
+      String patientImageUrl = doctorData['imageUrl'] ?? ''; // Fetch imageUrl
 
       var patientDoc = await FirebaseFirestore.instance
           .collection('patients')
@@ -66,6 +67,7 @@ class _SearchPageState extends State<SearchPage> {
         'name': patientName,
         'email': patientEmail,
         'timestamp': Timestamp.now(),
+        'imageUrl': patientData['imageUrl'],
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,6 +110,7 @@ class _SearchPageState extends State<SearchPage> {
       var doctorData = doctorDoc.data() as Map<String, dynamic>;
       String doctorName = doctorData['name'] ?? 'Unknown';
       String doctorJobTitle = doctorData['jobTitle'] ?? 'Unknown';
+      String patientImageUrl = doctorData['imageUrl'] ?? ''; // Fetch imageUrl
 
       await FirebaseFirestore.instance
           .collection('patients')
@@ -119,6 +122,7 @@ class _SearchPageState extends State<SearchPage> {
         'name': doctorName,
         'jobTitle': doctorJobTitle,
         'timestamp': Timestamp.now(),
+        'imageUrl': patientData['imageUrl'],
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -204,9 +208,28 @@ class _SearchPageState extends State<SearchPage> {
                     String name = data['name'] ?? 'No name';
                     String jobTitle = data['jobTitle'] ?? 'No job title';
                     String location = data['location'] ?? 'No location';
+                    String imageUrl = data['imageUrl'] ?? '';
+                    String doctorUid = data['uid'] ?? '';
 
-                    String doctorUid =
-                        data['uid'] ?? ''; // Ensure uid field is present
+                    // Determine avatar based on imageUrl or first character of name
+                    Widget leadingWidget;
+                    if (imageUrl.isNotEmpty) {
+                      leadingWidget = CircleAvatar(
+                        backgroundImage: NetworkImage(imageUrl),
+                      );
+                    } else {
+                      // Use the first character of the name as initials
+                      String initials =
+                          name.isEmpty ? '?' : name[0].toUpperCase();
+                      leadingWidget = CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Text(
+                          initials,
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    }
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -216,9 +239,9 @@ class _SearchPageState extends State<SearchPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: ListTile(
-                          leading: Icon(Icons.subdirectory_arrow_right),
+                          leading: leadingWidget,
                           title: Text(
-                            'Dr/ ' + name,
+                            'Dr. $name',
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -226,7 +249,7 @@ class _SearchPageState extends State<SearchPage> {
                             ),
                           ),
                           subtitle: Text(
-                            jobTitle + '\n' + location,
+                            '$jobTitle\n$location',
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                           trailing: IconButton(

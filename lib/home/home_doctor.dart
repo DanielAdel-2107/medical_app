@@ -23,7 +23,6 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
     DoctorProfilePage(
       doctorUid: FirebaseAuth.instance.currentUser!.uid,
     ),
-    NotificationScreen(),
   ];
 
   void _onTabTapped(int index) {
@@ -56,10 +55,6 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notification',
           ),
         ],
       ),

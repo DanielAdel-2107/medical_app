@@ -41,6 +41,7 @@ class _DoctorProfilePageState extends State<DoctorProfilePage> {
           IconButton(
             onPressed: () async {
               await _auth.signOut();
+
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => LoginScreen()),

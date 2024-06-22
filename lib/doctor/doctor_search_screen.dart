@@ -122,18 +122,27 @@ class _DoctorSearchPageState extends State<DoctorSearchPage> {
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.blueAccent,
-                                child: Text(
-                                  patientData['name'][0].toUpperCase(),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
+                                backgroundImage:
+                                    patientData.containsKey('imageUrl') &&
+                                            patientData['imageUrl'].isNotEmpty
+                                        ? NetworkImage(patientData['imageUrl'])
+                                        : null,
+                                child: patientData.containsKey('imageUrl') &&
+                                        patientData['imageUrl'].isNotEmpty
+                                    ? null
+                                    : Text(
+                                        patientData['name'][0].toUpperCase(),
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      ),
                               ),
                               title: Text(
                                 patientData['name'],
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold),
                               ),
-                              subtitle: Text(patientData.containsKey('details')
-                                  ? patientData['details']
+                              subtitle: Text(patientData.containsKey('phone')
+                                  ? patientData['phone']
                                   : 'No details available'),
                               onTap: () {
                                 Navigator.push(

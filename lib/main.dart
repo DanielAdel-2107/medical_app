@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,22 +6,47 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:medical_app/home/home_doctor.dart';
 import 'package:medical_app/home/user_home.dart';
 import 'package:medical_app/on_boarding_screen/on_boarding_screen.dart';
-import 'package:medical_app/patient/notification_screen.dart';
 import 'package:medical_app/provider/chat_provider.dart';
 import 'package:medical_app/splash_screen/splash_screnn.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  await Firebase.initializeApp();
+
+  print("Handling a background message: ${message.messageId}");
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+      if (message.notification != null) {
+        print(
+            'Message also contained a notification: ${message.notification!.title}');
+      }
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,21 +74,18 @@ class _SplashScreenWrapperState extends State<SplashScreenWrapper> {
     _navigateToHome(FirebaseAuth.instance.currentUser?.uid ?? '');
   }
 
-  // Future<void> checkUserLogin() async {
-  //   FirebaseAuth auth = FirebaseAuth.instance;
-  //   User? user = auth.currentUser;
-
-  //   if (user == null) {
-  //     // User is not logged in, navigate to SplashScreen
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => OnboarSdingScreen()),
-  //     );
-  //   } else {
-  //     // User is logged in, determine user role and navigate accordingly
-  //     await _navigateToHome(user.uid);
-  //   }
-  // }
+  Future<void> checkUserLogin() async {
+    FirebaseAuth.instance.userChanges().listen((User? user) async {
+      if (user == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => OnboardingScreen()),
+        );
+      } else {
+        await _navigateToHome(user.uid);
+      }
+    });
+  }
 
   Future<void> _navigateToHome(String userId) async {
     try {

@@ -114,56 +114,62 @@ class PatientDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('patients')
-            .doc(patientId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('No patient data found.'));
-          }
-          var patientData = snapshot.data!.data() as Map<String, dynamic>;
-          return Padding(
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('patients')
+          .doc(patientId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Center(child: Text('No patient data found.'));
+        }
+
+        var patientData = snapshot.data!.data() as Map<String, dynamic>;
+
+        // Extract imageUrl or provide a default if not available
+        String imageUrl = patientData['imageUrl'] ?? 'default_image_url';
+
+        return Scaffold(
+          body: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  height: 16,
-                ),
+                SizedBox(height: 16),
                 Center(
                   child: CircleAvatar(
-                      radius: 80,
-                      backgroundImage: AssetImage(
-                        'assets/images/person.png',
-                      )),
+                    radius: 80,
+                    backgroundImage: imageUrl.isNotEmpty
+                        ? NetworkImage(imageUrl)
+                        : AssetImage('assets/images/default_image.png'),
+                    // Use default_image.png from assets if imageUrl is empty
+                  ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 _buildDetailItem('Name', patientData['name'] ?? 'Unknown'),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _buildDetailItem(
-                    'Phone',
-                    patientData['phone'] != null
-                        ? patientData['phone'].toString()
-                        : 'Unknown'),
-                const SizedBox(height: 10),
-                _buildDetailItem('email', patientData['email'] ?? 'Unknown'),
-                const SizedBox(height: 10),
-                _buildDetailItem('status', patientData['role'] ?? 'Unknown'),
-                // You can add more fields here
+                  'Phone',
+                  patientData['phone'] != null
+                      ? patientData['phone'].toString()
+                      : 'Unknown',
+                ),
+                SizedBox(height: 10),
+                _buildDetailItem('Email', patientData['email'] ?? 'Unknown'),
+                SizedBox(height: 10),
+                _buildDetailItem('Role', patientData['role'] ?? 'Unknown'),
+                // Add more fields as needed
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -233,17 +239,13 @@ class _PatientReportsPageState extends State<PatientReportsPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-
           final reports = snapshot.data?.docs ?? [];
-
           if (reports.isEmpty) {
             return const Center(child: Text('No reports found.'));
           }
-
           return ListView.builder(
             itemCount: reports.length,
             itemBuilder: (context, index) {

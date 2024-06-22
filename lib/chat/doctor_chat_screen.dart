@@ -82,15 +82,20 @@ class DoctorListChatScreen extends StatelessWidget {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              radius: 30,
-                              backgroundColor: Colors.blue[200],
-                              child: Text(
-                                data['name'][0].toUpperCase(),
-                                style: TextStyle(
-                                    fontSize: 24,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
-                              ),
+                              radius: 35,
+                              backgroundColor: Colors.blueAccent,
+                              backgroundImage: data.containsKey('imageUrl') &&
+                                      data['imageUrl'].isNotEmpty
+                                  ? NetworkImage(data['imageUrl'])
+                                  : null,
+                              child: data.containsKey('imageUrl') &&
+                                      data['imageUrl'].isNotEmpty
+                                  ? null
+                                  : Text(
+                                      data['name'][0].toUpperCase(),
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
                             ),
                             const SizedBox(width: 16),
                             Text(

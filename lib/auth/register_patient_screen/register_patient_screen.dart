@@ -1,8 +1,11 @@
 import 'dart:async';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:medical_app/auth/login_screen/login_screen.dart';
 
 class RegisterPatientPage extends StatefulWidget {
@@ -15,6 +18,8 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _storage = FirebaseStorage.instance;
+  final _picker = ImagePicker();
 
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -24,6 +29,8 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
+
+  File? _image;
 
   @override
   void initState() {
@@ -50,52 +57,61 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
     super.dispose();
   }
 
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  Future<void> _getImage(ImageSource source) async {
+    final pickedFile = await _picker.pickImage(source: source);
 
-  UserCredential? userCredential;
+    setState(() {
+      if (pickedFile != null) {
+        _image = File(pickedFile.path);
+      } else {
+        print('No image selected.');
+      }
+    });
+  }
+
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       try {
         // 1. Create user with email and password
-        userCredential = await _auth.createUserWithEmailAndPassword(
+        final userCredential = await _auth.createUserWithEmailAndPassword(
           email: _emailController.text,
           password: _passwordController.text,
         );
 
-        // 2. Store additional user details in Firestore
+        // 2. Upload image to Firebase Storage if available
+        String imageUrl = '';
+        if (_image != null) {
+          final Reference ref = _storage
+              .ref()
+              .child('user_images')
+              .child('${userCredential.user!.uid}.jpg');
+          await ref.putFile(_image!);
+          imageUrl = await ref.getDownloadURL();
+        }
+
+        // 3. Store additional user details in Firestore
         await _firestore
             .collection('patients')
-            .doc(userCredential!.user!.uid)
+            .doc(userCredential.user!.uid)
             .set({
           'name': _nameController.text,
           'email': _emailController.text,
           'phone': _phoneController.text,
-          'uid': userCredential!.user!.uid,
+          'uid': userCredential.user!.uid,
           'role': 'patient',
+          'imageUrl': imageUrl, // Store image URL in Firestore
         });
-        await _firebaseMessaging.subscribeToTopic('message');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration Successful')),
         );
 
-        await _firestore
-            .collection('AddUserChat')
-            .doc(userCredential!.user!.uid)
-            .set({
-          'name': _nameController.text,
-          'email': _emailController.text,
-          'phone': _phoneController.text,
-          'uid': userCredential!.user!.uid
-        });
-
-        Timer(Duration(seconds: 4), () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(),
-            ),
-          );
-        });
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(),
+          ),
+        );
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration Failed: ${e.message}')),
@@ -119,9 +135,49 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
             child: ListView(
               children: [
                 Center(
-                  child: CircleAvatar(
-                    radius: 100,
-                    backgroundImage: AssetImage('assets/images/patient.jfif'),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundImage: _image != null
+                            ? FileImage(_image!)
+                            : AssetImage('assets/images/patient.jfif')
+                                as ImageProvider,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: Icon(Icons.camera_alt),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) => Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: Icon(Icons.photo_camera),
+                                    title: Text('Take a picture'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      _getImage(ImageSource.camera);
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.photo_library),
+                                    title: Text('Choose from gallery'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      _getImage(ImageSource.gallery);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(height: 20),
@@ -207,7 +263,7 @@ class _RegisterPatientPageState extends State<RegisterPatientPage>
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
-                    } else if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                    } else if (!RegExp(r'^\d{11}$').hasMatch(value)) {
                       return 'Please enter a valid phone number';
                     }
                     return null;

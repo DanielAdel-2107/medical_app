@@ -1,161 +1,27 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
-import 'package:medical_app/auth/login_screen/login_screen.dart';
 import 'package:medical_app/helper/notification_helper.dart';
-
-void customShowBottomSheet(BuildContext context, String id) {
-  String userName = '';
-  String message = '';
-  String phoneNumber = '';
-  String place = '';
-  var now = DateTime.now();
-  var formatDate = DateFormat('yyyy-MM-dd').format(now);
-  CollectionReference notification =
-      FirebaseFirestore.instance.collection('notification');
-  Future<void> addNotification() async {
-    try {
-      await notification.add({
-        'userName': userName,
-        'message': message,
-        'phoneNumber': phoneNumber,
-        'place': place,
-        'id': id,
-        'date': formatDate,
-      });
-    } catch (e) {
-      print('Error adding document: $e');
-    }
-  }
-
-  NotificationHelper notificationHelper = NotificationHelper();
-  showModalBottomSheet(
-    isScrollControlled: true,
-    context: context,
-    builder: (BuildContext context) {
-      return Container(
-        margin: EdgeInsets.symmetric(horizontal: 8),
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 16,
-            right: 16,
-            left: 16),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.blue, width: 3),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              SizedBox(
-                height: 15,
-              ),
-              CustomTextFormField(
-                onChanged: (p0) {
-                  userName = p0;
-                },
-                text: 'User_Name',
-              ),
-              SizedBox(
-                height: 15,
-              ),
-              CustomTextFormField(
-                onChanged: (p0) {
-                  message = p0;
-                },
-                text: 'Message',
-              ),
-              SizedBox(
-                height: 15,
-              ),
-
-              CustomTextFormField(
-                text: 'Place',
-                onChanged: (p0) {
-                  place = p0;
-                },
-              ),
-              SizedBox(
-                height: 15,
-              ),
-              CustomTextFormField(
-                text: 'Phone_Number',
-                onChanged: (p0) {
-                  phoneNumber = p0;
-                },
-              ),
-              SizedBox(
-                height: 15,
-              ),
-              // ده
-              MaterialButton(
-                minWidth: double.infinity,
-                height: 45,
-                onPressed: () async {
-                  await addNotification();
-                  Navigator.pop(context);
-
-                  await notificationHelper.sendNotification('message',
-                      phoneNumber: phoneNumber,
-                      place: place,
-                      message: message,
-                      userName: userName);
-                  await notificationHelper.getForGroundMessage(context);
-                },
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text('Send_Notification'),
-                color: Colors.blue,
-              ),
-              SizedBox(
-                height: 15,
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+import 'package:medical_app/auth/login_screen/login_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({super.key});
+  const NotificationScreen({Key? key}) : super(key: key);
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+  _NotificationScreenState createState() => _NotificationScreenState();
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  final TextStyle dropdownMenuItem =
-      const TextStyle(color: Colors.black, fontSize: 18);
-
-  List<QueryDocumentSnapshot> data = [];
-  getDate() async {
-    try {
-      final QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection('notification').get();
-      data.addAll(snapshot.docs);
-      setState(() {});
-    } catch (error) {
-      print('$error.');
-    }
-  }
+  final NotificationHelper notificationHelper = NotificationHelper();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    notificationHelper.configureFirebaseMessaging(context);
   }
-
-  CollectionReference notification =
-      FirebaseFirestore.instance.collection('notification');
-  bool myNotification = false;
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +30,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
         backgroundColor: Colors.blue,
         onPressed: () async {
           await FirebaseMessaging.instance.subscribeToTopic('message');
-
           customShowBottomSheet(
               context, await FirebaseAuth.instance.currentUser!.uid);
         },
@@ -183,32 +48,36 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 padding: const EdgeInsets.only(top: 70),
                 height: MediaQuery.of(context).size.height,
                 width: double.infinity,
-                child: StreamBuilder<List<QueryDocumentSnapshot>>(
-                    stream: notification
-                        .snapshots()
-                        .map((snapshot) => snapshot.docs),
-                    builder: (BuildContext context,
-                        AsyncSnapshot<List<QueryDocumentSnapshot>> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(
-                          child: Text('Something_went_wrong'),
-                        );
-                      } else {
-                        List<QueryDocumentSnapshot> dataList = snapshot.data!;
-                        return ListView.builder(
-                            itemCount: dataList.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 15),
-                                child: CustomCardNotification(
-                                  snap: dataList[index],
-                                ),
-                              );
-                            });
-                      }
-                    }),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('notification').snapshots(),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<QuerySnapshot> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(
+                        child: Text('Something went wrong'),
+                      );
+                    } else if (!snapshot.hasData ||
+                        snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Text('No notifications available'),
+                      );
+                    } else {
+                      return ListView.builder(
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 15),
+                            child: CustomCardNotification(
+                              snap: snapshot.data!.docs[index],
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
               ),
               Container(
                 height: 100,
@@ -230,7 +99,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ),
                       IconButton(
                         onPressed: () async {
-                          await _auth.signOut();
+                          await FirebaseAuth.instance.signOut();
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
@@ -253,10 +122,126 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
     );
   }
+
+  void customShowBottomSheet(BuildContext context, String id) {
+    String userName = '';
+    String message = '';
+    String phoneNumber = '';
+    String place = '';
+    var now = DateTime.now();
+    var formatDate = DateFormat('yyyy-MM-dd').format(now);
+    CollectionReference notification =
+        FirebaseFirestore.instance.collection('notification');
+    Future<void> addNotification() async {
+      try {
+        await notification.add({
+          'userName': userName,
+          'message': message,
+          'phoneNumber': phoneNumber,
+          'place': place,
+          'id': id,
+          'date': formatDate,
+        });
+      } catch (e) {
+        print('Error adding document: $e');
+      }
+    }
+
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 8),
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              top: 16,
+              right: 16,
+              left: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.blue, width: 3),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                SizedBox(
+                  height: 15,
+                ),
+                CustomTextFormField(
+                  onChanged: (p0) {
+                    userName = p0;
+                  },
+                  text: 'User_Name',
+                ),
+                SizedBox(
+                  height: 15,
+                ),
+                CustomTextFormField(
+                  onChanged: (p0) {
+                    message = p0;
+                  },
+                  text: 'Message',
+                ),
+                SizedBox(
+                  height: 15,
+                ),
+                CustomTextFormField(
+                  text: 'Place',
+                  onChanged: (p0) {
+                    place = p0;
+                  },
+                ),
+                SizedBox(
+                  height: 15,
+                ),
+                CustomTextFormField(
+                  text: 'Phone_Number',
+                  onChanged: (p0) {
+                    phoneNumber = p0;
+                  },
+                ),
+                SizedBox(
+                  height: 15,
+                ),
+                MaterialButton(
+                  minWidth: double.infinity,
+                  height: 45,
+                  onPressed: () async {
+                    await addNotification();
+
+                    await notificationHelper.sendNotification(
+                      'message',
+                      phoneNumber: phoneNumber,
+                      place: place,
+                      message: message,
+                      userName: userName,
+                    );
+
+                    Navigator.pop(context); // Dismiss the bottom sheet
+                  },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text('Send Notification'),
+                  color: Colors.blue,
+                ),
+                SizedBox(
+                  height: 15,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class CustomCardNotification extends StatelessWidget {
-  const CustomCardNotification({super.key, required this.snap});
+  const CustomCardNotification({Key? key, required this.snap})
+      : super(key: key);
   final QueryDocumentSnapshot snap;
 
   @override
@@ -268,7 +253,6 @@ class CustomCardNotification extends StatelessWidget {
         color: Colors.white70,
       ),
       width: double.infinity,
-      // height: 110,
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       child: Row(
@@ -280,14 +264,21 @@ class CustomCardNotification extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 CustomListTile(
-                    text: snap['message'],
-                    icon: Icons.message,
-                    fontSize: 20,
-                    date: ''),
+                  text: snap['message'],
+                  icon: Icons.message,
+                  fontSize: 20,
+                  date: '',
+                ),
                 CustomListTile(
-                    text: snap['userName'], icon: Icons.person, date: ''),
+                  text: snap['userName'],
+                  icon: Icons.person,
+                  date: '',
+                ),
                 CustomListTile(
-                    text: snap['place'], icon: Icons.location_on, date: ''),
+                  text: snap['place'],
+                  icon: Icons.location_on,
+                  date: '',
+                ),
                 CustomListTile(
                   text: snap['phoneNumber'],
                   icon: Icons.phone,
@@ -304,16 +295,18 @@ class CustomCardNotification extends StatelessWidget {
 
 class CustomListTile extends StatelessWidget {
   CustomListTile({
-    super.key,
+    Key? key,
     this.fontSize = 14,
     required this.text,
     required this.icon,
     this.date,
-  });
+  }) : super(key: key);
+
   final String text;
   final double fontSize;
-  String? date;
+  final String? date;
   final IconData icon;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -330,14 +323,15 @@ class CustomListTile extends StatelessWidget {
         Container(
           width: 180,
           child: Text(
+            text,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            text,
             style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-                fontSize: fontSize,
-                fontStyle: FontStyle.italic),
+              color: Colors.blue,
+              fontWeight: FontWeight.bold,
+              fontSize: fontSize,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ),
         const SizedBox(
@@ -346,23 +340,28 @@ class CustomListTile extends StatelessWidget {
         Text(
           date!,
           style: TextStyle(
-              color: Colors.blue, fontSize: 16, fontWeight: FontWeight.bold),
-        )
+            color: Colors.blue,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
 }
 
 class CustomTextFormField extends StatelessWidget {
-  const CustomTextFormField(
-      {this.text,
-      this.suffixIcon,
-      this.isVisable = false,
-      this.onChanged,
-      this.validator,
-      this.onPressed,
-      this.textInputType = TextInputType.emailAddress,
-      this.controller});
+  const CustomTextFormField({
+    Key? key,
+    this.text,
+    this.suffixIcon,
+    this.isVisable = false,
+    this.onChanged,
+    this.validator,
+    this.onPressed,
+    this.textInputType = TextInputType.emailAddress,
+    this.controller,
+  }) : super(key: key);
 
   final String? text;
   final IconData? suffixIcon;
@@ -372,6 +371,7 @@ class CustomTextFormField extends StatelessWidget {
   final Function()? onPressed;
   final TextInputType? textInputType;
   final TextEditingController? controller;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(

@@ -1,117 +1,82 @@
 import 'dart:convert';
-import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:medical_app/patient/notification_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class NotificationHelper {
-  sendNotification(topic,
+  Future<void> sendNotification(String topic,
       {required String userName,
       required String message,
       required String place,
       required String phoneNumber}) async {
     var headersList = {
-      'Accept': '/',
       'Content-Type': 'application/json',
-      'Authorization':
-          'key=AAAA8a_Wm9c:APA91bGmxIeIoPxiEExpV4i2KaMeKe6lMygjv9MZsCWNq5FGTY' +
-              '8FiDIEtWCzUzWCfxtjcwUptRirifcayFSIR_VzlSioxf9T1SnYj1jChid4tjCatGBcv5I5D6JWa0FbenOmqKgVisBs'
+      'Authorization': 'key=YOUR_SERVER_KEY' // Replace with your FCM server key
     };
+
     var url = Uri.parse('https://fcm.googleapis.com/fcm/send');
 
-    var body = await {
+    var body = jsonEncode({
       "to": "/topics/$topic",
       "notification": {
         "title": 'New Notification',
-        'body': '${userName} \n${message} \n${place}',
-        "mutable_content": true,
-        "sound": "Tri-tone"
+        'body': '$userName \n$message \n$place',
+        "sound": "default"
       },
       "data": {
-        "userName": '${userName}',
-        "place": '$place',
-        "phoneNumber": '$phoneNumber',
+        "userName": userName,
+        "place": place,
+        "phoneNumber": phoneNumber,
       },
-    };
+    });
 
-    var req = http.Request('POST', url);
-    req.headers.addAll(headersList);
-    req.body = json.encode(body);
+    var response = await http.post(url, headers: headersList, body: body);
 
-    var res = await req.send();
-    final resBody = await res.stream.bytesToString();
-
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      print(resBody);
+    if (response.statusCode == 200) {
+      print('Notification sent successfully');
     } else {
-      print(res.reasonPhrase);
+      print('Failed to send notification. Error: ${response.reasonPhrase}');
     }
   }
 
-  getForGroundMessage(BuildContext context) {
+  void configureFirebaseMessaging(BuildContext context) {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.notification != null) {
-        print('Got a message whilst in the foreground!');
-        print('Message data: ${message.notification!.title}');
-        print(message.notification!.body);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${message.data['userName']}'),
-              Text('${message.notification!.body}'),
-              Text('${message.data['message']}'),
-            ],
-          ),
-          duration: Duration(seconds: 3),
-          action: SnackBarAction(
-            label: 'Open',
-            onPressed: () {
-              Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const NotificationScreen()));
-            },
-          ),
-        ));
-      } else {
-        print('error');
+        print('Foreground message received: ${message.notification!.body}');
+        showNotificationDialog(context, message);
       }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Notification clicked when app is in background');
+      // Handle navigation or deep linking here
     });
   }
 
-  getMyToken() async {
-    print('======================================================');
-    try {
-      String? token = await FirebaseMessaging.instance.getToken();
-      print(token);
-    } catch (e) {
-      print(e.toString());
-    }
-    print('======================================================');
-  }
-
-  getRequest() async {
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
-    NotificationSettings settings = await messaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
+  void showNotificationDialog(BuildContext context, RemoteMessage message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text('New Notification'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message.notification!.body ?? ''),
+            Text(message.data['userName'] ?? ''),
+            Text(message.data['place'] ?? ''),
+            Text(message.data['phoneNumber'] ?? ''),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text('Close'),
+          ),
+        ],
+      ),
     );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted permission');
-    } else if (settings.authorizationStatus ==
-        AuthorizationStatus.provisional) {
-      print('User granted provisional permission');
-    } else {
-      print('User declined or has not accepted permission');
-    }
   }
 }

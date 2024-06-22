@@ -59,13 +59,6 @@ class _ChatViewState extends State<ChatView> {
           ),
           title: Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: _profileImageUrl != null
-                    ? NetworkImage(_profileImageUrl!)
-                    : const AssetImage('assets/images/person.png')
-                        as ImageProvider,
-              ),
               const SizedBox(width: 10),
               Text(
                 widget.name,
