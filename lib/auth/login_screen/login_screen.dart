@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login Failed')),
+        const SnackBar(content: Text('Login Failed')),
       );
     } finally {
       setState(() {
@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => DoctorHomeScreen(),
+            builder: (context) => const DoctorHomeScreen(),
           ),
           (route) => false,
         );
@@ -63,20 +63,20 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
-              builder: (context) => UserHome(),
+              builder: (context) => const UserHome(),
             ),
             (route) => false,
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('User role not found')),
+            const SnackBar(content: Text('User role not found')),
           );
         }
       }
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Navigation Error')),
+        const SnackBar(content: Text('Navigation Error')),
       );
     }
   }
@@ -91,13 +91,13 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 100,
                   backgroundImage: AssetImage(
                       'assets/images/images.jfif'), // Add your image here
                 ),
-                SizedBox(height: 20),
-                Text(
+                const SizedBox(height: 20),
+                const Text(
                   'Welcome Back!',
                   style: TextStyle(
                     fontSize: 24,
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.blueAccent,
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
@@ -113,10 +113,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: const Icon(Icons.email),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 TextField(
                   controller: _passwordController,
                   decoration: InputDecoration(
@@ -124,28 +124,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock),
                   ),
                   obscureText: true,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: _isLoading
-                      ? CircularProgressIndicator(
+                      ? const CircularProgressIndicator(
                           color: Colors.white,
                         )
-                      : Text('Login'),
+                      : const Text('Login'),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -179,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 50))
                   ],
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 TextButton(
                   onPressed: _isLoading
                       ? null
@@ -190,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 builder: (context) => RegisterPatientPage()),
                           );
                         },
-                  child: Text(
+                  child: const Text(
                     'Don\'t have an account? Register',
                     style: TextStyle(
                       color: Colors.blueAccent,
@@ -206,11 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String whatsappCountryCode = '+20';
-
-  String whatsappNumber = '01156915466';
+  String whatsappNumber = '01002355214';
   Future<void> _launchUrl({required String url}) async {
     final Uri _url = Uri.parse(url);
-
     if (!await launchUrl(_url)) {
       throw Exception('Could not launch $_url');
     }

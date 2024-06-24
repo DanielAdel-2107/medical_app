@@ -45,7 +45,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Column(
               children: const [
                 Text(
-                  'WeLcOmE ',
+                  'Welcome ',
                   style: TextStyle(
                       color: Colors.deepPurple,
                       fontSize: 60,
